@@ -36,10 +36,6 @@ No additional toolboxes are strictly required to run the provided script.
 
 - The default `N_sims = 100000` is chosen for good Monte Carlo statistics but will increase runtime. For development and quick checks, try `N_sims = 1000` or smaller.
 - Memory: the script stores all estimates as an array sized `nu x N_sims`. For very large `N_sims` this can grow large; consider computing running averages or saving only statistics instead of every trajectory if memory becomes an issue.
-- Speedups:
-  - Use `parfor` (Parallel Computing Toolbox) to parallelize the outer simulation loop (`for sim_idx = 1:N_sims`) — be careful with `waitbar` (it is not supported inside `parfor`).
-  - Vectorize parts of the code where possible.
-  - Use a smaller number of gray background trajectories plotted (the script plots up to 50) if plotting is slow.
 
 ## Reproducing Figure 2
 
@@ -55,9 +51,7 @@ The file `Simulation_of_outcomes_and_MLE.m` contains everything required to repr
 
 ## Citation / Authors
 
-Please cite the corresponding preprint / paper when using these results. (Add full citation / DOI / arXiv identifier here.)
-
-Authors: Mehboudi (repository owner) and collaborators.
+Please cite the corresponding preprint / paper when using these results. (DOI:)
 
 ## License
 

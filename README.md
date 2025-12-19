@@ -55,4 +55,7 @@ Please cite the corresponding preprint / paper when using these results. (DOI:)
 
 ## License
 
-(Add license here — e.g., MIT, BSD — or state "All rights reserved" if not open source.)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+

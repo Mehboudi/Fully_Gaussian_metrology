@@ -1,7 +1,7 @@
 % ---------------------------------------------------------
 % Parameter Settings
 % ---------------------------------------------------------
-alpha0 = sqrt(2);      % Tunable parameter alpha
+alpha0 = sqrt(2);      % Tunable parameter alpha (related to input coherent state's amplitude)
 nu = 10;                % Total number of samples per simulation
 N_sims = 100000;          % Number of independent simulations
 true_r = 0.01;            % The true hidden parameter r

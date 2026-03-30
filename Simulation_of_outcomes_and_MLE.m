@@ -2,9 +2,9 @@
 % Parameter Settings
 % ---------------------------------------------------------
 alpha0 = sqrt(2);      % Tunable parameter alpha (related to input coherent state's amplitude)
-nu = 10;                % Total number of samples per simulation
+nu = 100;                % Total number of samples per simulation
 N_sims = 100000;          % Number of independent simulations
-true_r = 0.01;            % The true hidden parameter r
+true_r = 0.1;            % The true hidden parameter r
 
 % ---------------------------------------------------------
 % Run Simulations (Left Column & Bottom Right)
@@ -120,9 +120,9 @@ function [all_estimates, squared_errors, avg_error] = run_simulation(m, nu, N_si
     all_estimates = zeros(nu, N_sims);
     options = optimset('Display', 'off', 'TolX', 1e-6);
     
-    var1 = exp(2 * true_r);
-    var2 = (exp(2*true_r) + exp(-2*true_r))/2; 
-    mean_d = sqrt(m) * alpha0 * (exp(true_r) - exp(-true_r)); 
+    var1 = exp(2 * true_r)/2;
+    var2 = (exp(2*true_r) + exp(-2*true_r))/4; 
+    mean_d = sqrt(m/2) * alpha0 * (exp(true_r) - exp(-true_r)); 
     
     h_wait = waitbar(0, ['Simulating m=' num2str(m) '...']);
     
@@ -165,17 +165,14 @@ end
 % Helper Function: Negative Log-Likelihood
 % ---------------------------------------------------------
 function nll = neg_log_likelihood(r, X_m, S1, nu_curr, m, alpha)
-    e_2r = exp(2*r);
-    e_neg_2r = exp(-2*r);
-    denom = e_2r + e_neg_2r; 
-    
-    term_inner = sqrt(m) * alpha * (exp(r) - exp(-r)) - X_m;
+
+    term_inner = sqrt(m/2) * alpha * (exp(r) - exp(-r)) - X_m;
     S2 = sum(term_inner.^2);
     
-    L1 = - S1 / (2 * e_2r);
-    L2 = - nu_curr * (m - 1) * r;
-    L3 = - S2 / denom;
-    L4 = - (nu_curr / 2) * log(denom);
+    L1 = - S1 / exp(2*r);
+    L2 = - S2 / cosh(2*r);
+    L3 = - nu_curr * (m - 1) * r;
+    L4 = - (nu_curr / 2) * log(cosh(2*r));
     
     nll = -(L1 + L2 + L3 + L4);
 end

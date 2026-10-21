@@ -16,6 +16,13 @@ disp('Running Simulation for m=5...');
 [est_m5, sq_err_m5, avg_err_m5, bias_m5, var_m5] = run_simulation(5, nu, N_sims, alpha0, true_r);
 
 % ---------------------------------------------------------
+% Numerical uncertainty of the squared bias (bootstrap)
+% ---------------------------------------------------------
+B_boot = 1000;   % number of bootstrap resamples
+[sb_lo_m2, sb_hi_m2] = bootstrap_sqbias(est_m2, true_r, B_boot);
+[sb_lo_m5, sb_hi_m5] = bootstrap_sqbias(est_m5, true_r, B_boot);
+
+% ---------------------------------------------------------
 % Prepare Theoretical Bounds
 % ---------------------------------------------------------
 sample_indices = (1:nu)';
@@ -112,20 +119,32 @@ set(gca, 'FontSize', 20, 'LineWidth', 2, 'Box', 'on');
 % ---------------------------------------------------------
 figure('Name', 'MLE Analysis: MSE Breakdown', 'Color', 'w', 'Position', [150, 150, 800, 600]);
 
-% Using loglog since squared errors span multiple orders of magnitude
-loglog(1:nu, bias_m2.^2, 'b-', 'LineWidth', 3); hold on;
-loglog(1:nu, var_m2, 'b--', 'LineWidth', 3);
+nu_ax   = (1:nu)';
+y_floor = 1e-12;   % log axes cannot show 0: guards against a lower edge of exactly 0
 
-loglog(1:nu, bias_m5.^2, 'r-', 'LineWidth', 3);
-loglog(1:nu, var_m5, 'r--', 'LineWidth', 3);
+% Log axes must be set before calling fill, otherwise fill makes them linear
+ax = gca; set(ax, 'XScale', 'log', 'YScale', 'log'); hold(ax, 'on');
+
+% Shaded bands first, so the curves are drawn on top
+shade_band(nu_ax, max(sb_lo_m2, y_floor), sb_hi_m2, [0 0 1]);
+shade_band(nu_ax, max(sb_lo_m5, y_floor), sb_hi_m5, [1 0 0]);
+
+% Using loglog since squared errors span multiple orders of magnitude
+h_b2 = loglog(1:nu, bias_m2.^2, 'b-', 'LineWidth', 3);
+h_v2 = loglog(1:nu, var_m2, 'b--', 'LineWidth', 3);
+
+h_b5 = loglog(1:nu, bias_m5.^2, 'r-', 'LineWidth', 3);
+h_v5 = loglog(1:nu, var_m5, 'r--', 'LineWidth', 3);
 
 title('MSE Breakdown: Squared Bias vs Estimator Variance');
 xlabel('$\nu$','Interpreter','latex');
 ylabel('Error');
-legend('m=2 (Squared Bias)', 'm=2 (Variance)', ...
+legend([h_b2, h_v2, h_b5, h_v5], ...
+       'm=2 (Squared Bias)', 'm=2 (Variance)', ...
        'm=5 (Squared Bias)', 'm=5 (Variance)', ...
        'Location', 'best');
 xlim([1, nu]);
+ylim([1e-9, 1e-1]);
 grid on;
 set(gca, 'FontSize', 20, 'LineWidth', 2, 'Box', 'on');
 
@@ -178,6 +197,34 @@ function [all_estimates, squared_errors, avg_error, bias, est_var] = run_simulat
     avg_error = mean(squared_errors, 2);
     bias = mean(all_estimates, 2) - true_r; % Calculate the bias
     est_var = var(all_estimates, 0, 2);     % Calculate estimator variance over simulations
+end
+
+% ---------------------------------------------------------
+% Helper Function: bootstrap band for the squared bias
+% ---------------------------------------------------------
+% Resample the N simulations (whole trajectories) with replacement, recompute
+% the squared bias for every nu, repeat B times, and return the 2.5% and 97.5%
+% percentiles of the B values at each nu.
+function [lo, hi] = bootstrap_sqbias(all_estimates, true_r, B)
+    [nu, N] = size(all_estimates);
+    sqbias_boot = zeros(nu, B);
+    for k = 1:B
+        idx = randi(N, N, 1);                       % draw N simulations with replacement
+        w   = accumarray(idx, 1, [N, 1]) / N;       % weight of each simulation in this resample
+        sqbias_boot(:, k) = (all_estimates * w - true_r).^2;
+    end
+    sqbias_boot = sort(sqbias_boot, 2);
+    lo = sqbias_boot(:, max(1, round(0.025 * B)));
+    hi = sqbias_boot(:, round(0.975 * B));
+end
+
+% ---------------------------------------------------------
+% Helper Function: shaded band between two curves
+% ---------------------------------------------------------
+function h = shade_band(x, lo, hi, col)
+    x = x(:); lo = lo(:); hi = hi(:);
+    h = fill([x; flipud(x)], [lo; flipud(hi)], col, ...
+             'FaceAlpha', 0.2, 'EdgeColor', 'none', 'HandleVisibility', 'off');
 end
 
 % ---------------------------------------------------------

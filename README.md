@@ -1,61 +1,102 @@
 # Fully_Gaussian_metrology
 
-Simulations and data analysis for Maximum Likelihood Estimation (MLE) in squeezing estimation.
+MATLAB code for the Monte Carlo simulation and maximum likelihood estimation (MLE) in the squeezing-estimation example of
 
-This repository contains MATLAB code that reproduces Figure 2 from our preprint, entitled "\\maketitle ".
+> J. Navarro, S. Morelli, M. Sanz, and M. Mehboudi, *On super additivity of Fisher information in fully Gaussian metrology* (preprint).
+
+The script reproduces **Fig. 2** (main text) and **Fig. 4** (Appendix E) of the paper.
 
 ## Contents
 
-- `Simulation_of_outcomes_and_MLE.m` — main MATLAB script. Running this script generates the 2x2 panel figure (Figure 2 in the preprint) showing:
-  - Panel 1 (top-left): single MLE trajectory for m=2
-  - Panel 2 (top-right): Fisher information (per sample) vs. number of modes m
-  - Panel 3 (bottom-left): MSE convergence and theoretical bounds for m=2
-  - Panel 4 (bottom-right): MSE convergence and theoretical bounds for m=5
+- `Simulation_of_outcomes_and_MLE.m`: the main MATLAB script. Running it opens two figure windows:
+  1. **"MLE Analysis: Convergence and Scaling"** → **Fig. 2** of the paper (2×2 panels):
+     - (a) top-left: one MLE trajectory for $m=2$, converging to the true value of $r$ as the number of repetitions $\nu$ grows
+     - (b) top-right: Fisher information per copy vs. the number of copies $m$, comparing the global Gaussian strategy, the local Gaussian strategy, and the QFI
+     - (c) bottom-left: MSE of the MLE vs. $\nu$ with the CRB (global), the QCRB and the CRB (local), for $m=2$
+     - (d) bottom-right: the same for $m=5$
+  2. **"MLE Analysis: MSE Breakdown"** → **Fig. 4** of the paper (Appendix E): the squared bias (solid) and the variance (dashed) of the MLE vs. $\nu$ for $m=2$ (blue) and $m=5$ (red). The shaded bands are 95% bootstrap percentile confidence intervals for the squared bias.
+- `LICENSE`: MIT license.
 
 ## Requirements
 
-- MATLAB (tested with recent versions; the code uses only base MATLAB functions such as `randn`, `fminsearch`, `figure`, and `waitbar`)
-
-No additional toolboxes are strictly required to run the provided script.
+- MATLAB (base MATLAB only: `randn`, `randi`, `fminsearch`, `accumarray`, `fill`, `waitbar`, ...). No toolboxes are needed.
 
 ## Usage
 
-1. Open MATLAB and set the current folder to the repository root (or add it to the MATLAB path).
-2. Edit the top-of-file parameter block in `Simulation_of_outcomes_and_MLE.m` if you want to change simulation settings:
-   - `alpha0` — tunable parameter alpha
-   - `nu` — total number of samples per simulation (number of sequential measurements)
-   - `N_sims` — number of independent Monte Carlo simulations (default is large; reduce for quick tests)
-   - `true_r` — the ground-truth parameter value used to generate synthetic data
-3. Run the script:
-   - In the MATLAB command window: `run Simulation_of_outcomes_and_MLE.m`
-4. The script displays a 2x2 figure. To save the figure (recommended), add one of the following lines at the end of the script:
-   - Save as PNG: `exportgraphics(gcf, 'Figure2.png', 'Resolution', 300);`
-   - Save as MATLAB figure: `savefig('Figure2.fig');`
+1. Open MATLAB and set the current folder to the repository root.
+2. If needed, edit the parameters at the top of `Simulation_of_outcomes_and_MLE.m`:
 
-## Notes on performance and suggestions
+   | Parameter | Default | Meaning |
+   |-----------|---------|---------|
+   | `alpha0`  | `sqrt(2)` | Amplitude $\alpha$ of the coherent probe, $d=[\alpha,\alpha]^T$ |
+   | `nu`      | `100`     | Number of repetitions $\nu$ (sequential measurement rounds) per trajectory |
+   | `N_sims`  | `100000`  | Number of independent Monte Carlo trajectories |
+   | `true_r`  | `0.1`     | True squeezing parameter $r$ used to generate the data |
+   | `B_boot`  | `1000`    | Number of bootstrap resamples for the squared-bias confidence bands (set further down, in the bootstrap section) |
 
-- The default `N_sims = 100000` is chosen for good Monte Carlo statistics but will increase runtime. For development and quick checks, try `N_sims = 1000` or smaller.
-- Memory: the script stores all estimates as an array sized `nu x N_sims`. For very large `N_sims` this can grow large; consider computing running averages or saving only statistics instead of every trajectory if memory becomes an issue.
+3. Run the script from the MATLAB command window:
+```matlab
+   run Simulation_of_outcomes_and_MLE.m
+```
+4. To save the figures, add these lines at the end of the script, or run them afterwards:
+```matlab
+   exportgraphics(figure(1), 'Fig2_MLE_convergence.png', 'Resolution', 300);
+   exportgraphics(figure(2), 'Fig4_bias_variance.png',  'Resolution', 300);
+```
+   (`savefig` works too if you want `.fig` files.)
 
-## Reproducing Figure 2
+## What the script does
 
-The file `Simulation_of_outcomes_and_MLE.m` contains everything required to reproduce the figure. Key parameters that control the figure are at the top of the file; make sure you set them to the values used in the paper. After running, save the produced figure using `exportgraphics` or `saveas` for inclusion in the manuscript.
+**Measurement model.** The $m$ copies are measured jointly with the global strategy from the paper. A linear optical network moves the whole displacement onto the $m$-th mode. That mode is homodyned in the quadrature that is optimal for the displacement. The other $m-1$ modes are homodyned in the quadrature that is optimal for the covariance matrix. For each of the $\nu$ rounds the simulated outcomes are therefore
 
-## Script overview (quick)
+- $x^{(j)}_k \sim \mathcal{N}\!\left(0,\ e^{2r}/2\right)$ for $j = 1,\dots,m-1$,
+- $x^{(m)}_k \sim \mathcal{N}\!\left(\sqrt{m/2}\,\alpha\,(e^{r}-e^{-r}),\ \cosh(2r)/2\right)$.
 
-- `run_simulation(m, nu, N_sims, alpha0, true_r)` — runs N_sims Monte Carlo experiments for a measurement configuration with `m` modes and returns:
-  - `all_estimates` (nu-by-N_sims): estimated parameter r at each sample
-  - `squared_errors` (nu-by-N_sims)
-  - `avg_error` (nu-by-1): MSE vs number of samples (averaged over simulations)
-- `neg_log_likelihood(r, X_m, S1, nu_curr, m, alpha)` — negative log-likelihood used by `fminsearch` to find the MLE at each step
+**Estimator.** For every trajectory and every $\nu' = 1,\dots,\nu$, the MLE is found with `fminsearch` by maximising the log-likelihood (Eq. (E2) of the paper). The estimate from the previous step is used as the starting point:
 
-## Citation / Authors
+$$
+\log p = -\sum_{k=1}^{\nu'}\left[\frac{\sum_{j=1}^{m-1}\big(x^{(j)}_k\big)^2}{e^{2r}} + \frac{\big(\sqrt{m/2}\,\alpha\,(e^{r}-e^{-r}) - x^{(m)}_k\big)^2}{\cosh(2r)}\right] - \nu'(m-1)\,r - \frac{\nu'}{2}\log\cosh(2r) + \text{const.}
+$$
 
-Please cite the corresponding preprint / paper when using these results. (DOI:)
+**Error analysis.** From the $N$ trajectories the script computes, at each $\nu$:
+
+- the mean squared error $\mathrm{MSE}(\hat r) = \langle(\hat r - r)^2\rangle$, which is plotted in Fig. 2(c, d);
+- the bias $b(\hat r) = \langle \hat r\rangle - r$ and the variance $\mathrm{Var}(\hat r)$, which are plotted in Fig. 4. Recall that $\mathrm{MSE} = \mathrm{Var} + b^2$.
+- a 95% bootstrap confidence band for $b^2$. The script resamples the $N$ whole trajectories with replacement $B$ times, recomputes $b^2$ for every $\nu$, and takes the 2.5% and 97.5% percentiles.
+
+**Theoretical bounds** (Fisher information per round of $m$ copies, evaluated around $r_0 = 0$):
+
+- Global Gaussian strategy: $\mathcal{F}^C_{\rm Global} = 4m\alpha^2 + 2(m-1)$
+- Optimal local Gaussian strategy: $\mathcal{F}^C_{\rm Local} = 4m\alpha^2$
+- Quantum Fisher information: $\mathcal{F}^Q = m(4\alpha^2 + 2)$
+
+The bounds in panels (c, d) are $1/(\nu\,\mathcal{F})$.
+
+## Code structure
+
+- `run_simulation(m, nu, N_sims, alpha0, true_r)` simulates the outcomes and runs the sequential MLE. It returns:
+  - `all_estimates` (`nu × N_sims`): the estimate of $r$ after each round, for every trajectory
+  - `squared_errors` (`nu × N_sims`): $(\hat r - r)^2$
+  - `avg_error` (`nu × 1`): the MSE vs. $\nu$
+  - `bias` (`nu × 1`): $\langle \hat r\rangle - r$ vs. $\nu$
+  - `est_var` (`nu × 1`): the variance of $\hat r$ over trajectories vs. $\nu$
+- `neg_log_likelihood(r, X_m, S1, nu_curr, m, alpha)` is the negative log-likelihood minimised by `fminsearch`.
+- `bootstrap_sqbias(all_estimates, true_r, B)` returns the lower and upper 95% bootstrap percentile bounds on the squared bias for each $\nu$.
+- `shade_band(x, lo, hi, col)` draws the shaded confidence band on the log–log axes.
+
+## Runtime and memory
+
+- The default `N_sims = 100000` gives the statistics used in the paper, but the run is long. The script calls `fminsearch` `nu × N_sims` times for each of $m = 2$ and $m = 5$. For quick tests, use `N_sims = 1000` or fewer. With very few trajectories the bias estimate and its bootstrap band will be noisy.
+- The script stores every trajectory (`nu × N_sims` arrays for the estimates and squared errors, for both values of $m$), which takes a few hundred MB with the defaults. The bootstrap step needs these full arrays, so you can't replace them with running averages if you want Fig. 4.
+
+## Citation
+
+If you use this code, please cite the paper:
+
+> J. Navarro, S. Morelli, M. Sanz, and M. Mehboudi, *On super additivity of Fisher information in fully Gaussian metrology*. (DOI / arXiv: to be added)
 
 ## License
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
-
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

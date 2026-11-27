@@ -3,6 +3,7 @@
 MATLAB code for the Monte Carlo simulation and maximum likelihood estimation (MLE) in the squeezing-estimation example of
 
 > J. Navarro, S. Morelli, M. Sanz, and M. Mehboudi, *On super additivity of Fisher information in fully Gaussian metrology*, DOI: [10.1088/2058-9565/aec629](https://doi.org/10.1088/2058-9565/aec629).
+Codes published in Zenodo: https://doi.org/10.5281/zenodo.24592598
 
 The script reproduces **Fig. 2** (main text) and **Fig. 4** (Appendix E) of the paper.
 
